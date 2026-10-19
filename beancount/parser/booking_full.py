@@ -736,6 +736,9 @@ def compute_cost_number(costspec, units):
         units_number = abs(units.number)
         if number_per is not None:
             cost_total += number_per * units_number
+        if not units_number:
+            # A total cost cannot be spread over zero units.
+            return None
         unit_cost = cost_total / units_number
     elif number_per is None:
         return None
@@ -851,6 +854,25 @@ def interpolate_group(postings, balances, currency, tolerances):
 
         if price and price.number is MISSING:
             incomplete.append((MissingType.PRICE, index))
+
+    # A total cost cannot be spread over zero units; report it as a ledger
+    # error instead of letting a decimal exception escape from the loader.
+    for posting in postings:
+        cost = posting.cost
+        if (
+            isinstance(cost, CostSpec)
+            and cost.number_total not in (None, MISSING)
+            and posting.units.number is not MISSING
+            and not posting.units.number
+        ):
+            errors.append(
+                InterpolationError(
+                    posting.meta,
+                    "Total cost cannot be used with zero units: {}".format(posting),
+                    None,
+                )
+            )
+            return [], errors, False
 
     # The replacement posting for the incomplete posting of this group.
     new_posting = None

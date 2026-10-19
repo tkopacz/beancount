@@ -1341,6 +1341,39 @@ class TestComputeCostNumber(unittest.TestCase):
         )
 
 
+class TestZeroUnitsWithTotalCost(unittest.TestCase):
+    """Zero units with a total cost must yield a booking error, not an exception."""
+
+    LEDGER = textwrap.dedent("""
+        2024-01-01 open Assets:Invest
+        2024-01-01 open Assets:Cash
+
+        2024-01-02 *
+          Assets:Invest  0 HOOL {{%s}}
+          Assets:Cash
+    """)
+
+    def _load(self, cost):
+        return loader.load_string(self.LEDGER % cost)
+
+    def test_total_cost_only(self):
+        _, errors, _ = self._load("20.00 USD")
+        self.assertTrue(errors)
+        self.assertTrue(any("zero" in error.message.lower() for error in errors))
+
+    def test_per_and_total_cost(self):
+        _, errors, _ = loader.load_string(self.LEDGER % "0 # 20.00 USD")
+        self.assertTrue(errors)
+
+    def test_compute_cost_number_zero_units(self):
+        spec = position.CostSpec(None, D("20.00"), "USD", None, None, False)
+        self.assertIsNone(bf.compute_cost_number(spec, amount.from_string("0 HOOL")))
+
+    def test_nonzero_units_unchanged(self):
+        _, errors, _ = loader.load_string(self.LEDGER.replace("0 HOOL", "2 HOOL") % "20 USD")
+        self.assertFalse([e for e in errors if "zero" in e.message.lower()])
+
+
 class TestParseBookingOptions(cmptest.TestCase):
     @loader.load_doc()
     def test_booking_method__strict(self, entries, _, options_map):
