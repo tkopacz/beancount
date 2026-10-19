@@ -5,6 +5,8 @@ Note: This file contains a list changes in the 'v2' branch.
 The master branch will rely on the Git repository history.
 
 
+- Proposed documentation for issue #1048: explain DivisionByZero with 0 HOOL {{20.00 USD}} and the expected booking error.
+
 2024-06-16
 
 - Created branch 'v3' and released 3.0.0
